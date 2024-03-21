@@ -1,18 +1,67 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
-import { GoogleLogin } from "@react-oauth/google";
+import { GoogleLogin, googleLogout, useGoogleLogin } from "@react-oauth/google";
 import shareVideo from "./../assets/share.mp4";
 import logo from "./../assets/logowhite.png";
 
 const Login = () => {
-  const handleSuccessResponse = (response) => {
-    console.log("🚀 ~ handleSuccessResponse ~ response:", response);
+  const [user, setUser] = useState(null);
+  console.log("🚀 ~ Login ~ user:", user);
+  const [profile, setProfile] = useState(null);
+  console.log("🚀 ~ Login ~ profile:", profile);
+
+  // login
+  const login = useGoogleLogin({
+    onSuccess: (codeResponse) => {
+      setUser(codeResponse);
+      localStorage.setItem("user", codeResponse);
+    },
+    onError: (error) => console.log("Login Failed:", error),
+  });
+
+  // logout
+  const logout = () => {
+    googleLogout();
+    setUser(null);
+    setProfile(null);
+    localStorage.removeItem("user");
   };
 
-  const handleErrorResponse = (error) => {
-    console.log("🚀 ~ handleErrorResponse ~ error:", error);
-  };
+  // const handleSuccessResponse = (response) => {
+  //   localStorage.setItem('user', response)
+  // };
+  // const handleErrorResponse = (error) => {
+  //   console.log("🚀 ~ handleErrorResponse ~ error:", error);
+  // };
+
+  useEffect(() => {
+    if (user) {
+      fetch(
+        `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${user.access_token}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${user.access_token}`,
+            Accept: "application/json",
+          },
+        }
+      )
+        .then((res) => {
+          if (!res.ok) {
+            console.error("Error in network response");
+          } else {
+            return res.json();
+          }
+        })
+        .then((data) => {
+          setProfile(data);
+        })
+        .catch((error) =>
+          console.error(`Error processing the request , ${error}`)
+        );
+    }
+  }, [user]);
 
   return (
     <div className="bg-indigo-500 flex justify-start items-center flex-col h-screen">
@@ -34,13 +83,29 @@ const Login = () => {
         </div>
 
         <div className="shadow-2xl">
-          {/* <button className=" bg-mainColor flex justify-center items-center p-3 rounded-lg cursor-pointer outline-none">
-            <FcGoogle className=" mr-4" /> Sign in with Google
-          </button> */}
-          <GoogleLogin
+          {profile ? (
+            <div className=" bg-mainColor p-3">
+              <img src={profile.picture} alt="user image" />
+              <h3>User Logged in</h3>
+              <p>Name: {profile.name}</p>
+              <p>Email Address: {profile.email}</p>
+              <br />
+              <br />
+              <button onClick={logout}>Log out</button>
+            </div>
+          ) : (
+            <button
+              className=" bg-mainColor flex justify-center items-center px-3 py-2 rounded-lg cursor-pointer outline-none"
+              onClick={login}
+            >
+              <FcGoogle className=" mr-4" /> Sign in with Google
+            </button>
+          )}
+
+          {/* <GoogleLogin
             onSuccess={handleSuccessResponse}
             onError={handleErrorResponse}
-          />
+          /> */}
         </div>
       </div>
     </div>
