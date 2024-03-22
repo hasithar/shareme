@@ -2,20 +2,20 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
 import { GoogleLogin, googleLogout, useGoogleLogin } from "@react-oauth/google";
+import { client } from "../client";
 import shareVideo from "./../assets/share.mp4";
 import logo from "./../assets/logowhite.png";
 
 const Login = () => {
+  const navigate = useNavigate();
+
   const [user, setUser] = useState(null);
-  console.log("🚀 ~ Login ~ user:", user);
   const [profile, setProfile] = useState(null);
-  console.log("🚀 ~ Login ~ profile:", profile);
 
   // login
   const login = useGoogleLogin({
     onSuccess: (codeResponse) => {
       setUser(codeResponse);
-      localStorage.setItem("user", codeResponse);
     },
     onError: (error) => console.log("Login Failed:", error),
   });
@@ -56,12 +56,30 @@ const Login = () => {
         })
         .then((data) => {
           setProfile(data);
+          localStorage.setItem("user", JSON.stringify(data));
         })
         .catch((error) =>
           console.error(`Error processing the request , ${error}`)
         );
     }
   }, [user]);
+
+  useEffect(() => {
+    if (profile) {
+      const { id, name, picture } = profile;
+
+      const doc = {
+        _id: id,
+        _type: "user",
+        userName: name,
+        image: picture,
+      };
+
+      client
+        .createIfNotExists(doc)
+        .then(() => navigate("/", { replace: true }));
+    }
+  }, [navigate, profile]);
 
   return (
     <div className="bg-indigo-500 flex justify-start items-center flex-col h-screen">
@@ -85,13 +103,11 @@ const Login = () => {
         <div className="shadow-2xl">
           {profile ? (
             <div className=" bg-mainColor p-3">
-              <img src={profile.picture} alt="user image" />
-              <h3>User Logged in</h3>
-              <p>Name: {profile.name}</p>
-              <p>Email Address: {profile.email}</p>
-              <br />
-              <br />
-              <button onClick={logout}>Log out</button>
+              {/*<img src={profile.picture} alt="user image" />
+                  <h3>User Logged in</h3>
+                  <p>Name: {profile.name}</p>
+                  <p>Email Address: {profile.email}</p>
+                  <button onClick={logout}>Log out</button>*/}
             </div>
           ) : (
             <button
